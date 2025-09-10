@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Calendar, Clock, User, FileText, Video, CheckCircle, XCircle, Users, Stethoscope, Award, TrendingUp, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, User, FileText, Video, CheckCircle, XCircle, Users, Stethoscope, Award, TrendingUp, MessageSquare, Phone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { mockAppointments } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
 
 const DoctorDashboard = () => {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [prescriptionForm, setPrescriptionForm] = useState({
     patientId: '',
@@ -67,8 +69,8 @@ const DoctorDashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Doctor Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Providing care, saving lives</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('doctorDashboard')}</h1>
+          <p className="text-muted-foreground mt-1">{t('providingCare')}</p>
         </div>
         <div className="flex items-center space-x-2">
           <Badge variant="secondary" className="text-primary">
@@ -87,7 +89,7 @@ const DoctorDashboard = () => {
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Status: Available for Consultations</h3>
+              <h3 className="text-lg font-semibold mb-2">Status: Available for {t('consultation')}s</h3>
               <p className="text-white/80">Specialization: {user?.specialization}</p>
             </div>
             <div className="flex items-center space-x-4">
@@ -107,9 +109,9 @@ const DoctorDashboard = () => {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="appointments">Appointments</TabsTrigger>
-          <TabsTrigger value="prescriptions">Prescriptions</TabsTrigger>
-          <TabsTrigger value="consultations">Consultations</TabsTrigger>
+          <TabsTrigger value="appointments">{t('appointments')}</TabsTrigger>
+          <TabsTrigger value="prescriptions">{t('prescription')}s</TabsTrigger>
+          <TabsTrigger value="consultations">{t('consultation')}s</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -191,19 +193,19 @@ const DoctorDashboard = () => {
             <CardContent className="grid md:grid-cols-4 gap-4">
               <Button variant="medical" className="h-20 flex-col space-y-2 hover:scale-105 transition-transform">
                 <CheckCircle className="h-6 w-6" />
-                <span>Approve Appointments</span>
+                <span>Approve {t('appointments')}</span>
               </Button>
               <Button variant="outline" className="h-20 flex-col space-y-2 hover:scale-105 transition-transform">
                 <FileText className="h-6 w-6" />
-                <span>Write Prescription</span>
+                <span>Write {t('prescription')}</span>
               </Button>
               <Button variant="success" className="h-20 flex-col space-y-2 hover:scale-105 transition-transform">
                 <Video className="h-6 w-6" />
-                <span>Start Consultation</span>
+                <span>{t('startVideoCall')}</span>
               </Button>
               <Button variant="secondary" className="h-20 flex-col space-y-2 hover:scale-105 transition-transform">
-                <MessageSquare className="h-6 w-6" />
-                <span>Patient Messages</span>
+                <Phone className="h-6 w-6" />
+                <span>{t('startAudioCall')}</span>
               </Button>
             </CardContent>
           </Card>
@@ -240,7 +242,7 @@ const DoctorDashboard = () => {
         <TabsContent value="appointments" className="space-y-4">
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Appointment Requests</CardTitle>
+              <CardTitle>{t('appointments')} Requests</CardTitle>
               <CardDescription>Manage patient appointment requests</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -275,7 +277,7 @@ const DoctorDashboard = () => {
 
                   {appointment.symptoms && (
                     <div className="bg-muted/50 p-3 rounded text-sm border-l-4 border-primary">
-                      <strong>Symptoms:</strong> {appointment.symptoms}
+                      <strong>{t('symptoms')}:</strong> {appointment.symptoms}
                     </div>
                   )}
 
@@ -310,7 +312,7 @@ const DoctorDashboard = () => {
                       onClick={() => startVideoCall(appointment.id)}
                     >
                       <Video className="h-4 w-4 mr-1" />
-                      Start Consultation
+                      {t('startVideoCall')}
                     </Button>
                   )}
                 </div>
@@ -322,8 +324,8 @@ const DoctorDashboard = () => {
         <TabsContent value="prescriptions" className="space-y-4">
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Add Prescription</CardTitle>
-              <CardDescription>Create prescription for your patients</CardDescription>
+              <CardTitle>Add {t('prescription')}</CardTitle>
+              <CardDescription>Create {t('prescription')} for your patients</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -337,7 +339,7 @@ const DoctorDashboard = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Medicines</label>
+                <label className="block text-sm font-medium mb-2">{t('medicines')}</label>
                 <Textarea
                   placeholder="e.g., Paracetamol 500mg - Twice daily for 5 days"
                   value={prescriptionForm.medicines}
@@ -360,7 +362,7 @@ const DoctorDashboard = () => {
 
               <Button onClick={handleAddPrescription} variant="medical" className="w-full hover:scale-105 transition-transform">
                 <FileText className="h-4 w-4 mr-2" />
-                Add Prescription
+                Add {t('prescription')}
               </Button>
             </CardContent>
           </Card>
@@ -369,7 +371,7 @@ const DoctorDashboard = () => {
         <TabsContent value="consultations" className="space-y-4">
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Video Consultations</CardTitle>
+              <CardTitle>{t('videoConsultation')}s</CardTitle>
               <CardDescription>Manage your remote consultations</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -377,10 +379,10 @@ const DoctorDashboard = () => {
                 <div className="border border-border rounded-lg p-4 space-y-2 hover:shadow-card transition-shadow">
                   <div className="flex items-center space-x-2">
                     <div className="w-3 h-3 bg-success rounded-full animate-pulse"></div>
-                    <span className="font-medium">Available for Consultations</span>
+                    <span className="font-medium">Available for {t('consultation')}s</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Patients can book video calls with you
+                    Patients can book video/audio calls with you
                   </p>
                   <Button variant="outline" size="sm" className="hover:scale-105 transition-transform">
                     Go Offline
@@ -392,17 +394,24 @@ const DoctorDashboard = () => {
                   <div className="text-sm text-muted-foreground">
                     Krishna - 10:00 AM Today
                   </div>
-                  <Button variant="medical" size="sm" className="hover:scale-105 transition-transform">
-                    <Video className="h-4 w-4 mr-1" />
-                    Join Call
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button variant="medical" size="sm" className="hover:scale-105 transition-transform">
+                      <Video className="h-4 w-4 mr-1" />
+                      {t('joinVideoCall')}
+                    </Button>
+                    <Button variant="outline" size="sm" className="hover:scale-105 transition-transform">
+                      <Phone className="h-4 w-4 mr-1" />
+                      {t('joinAudioCall')}
+                    </Button>
+                  </div>
                 </div>
               </div>
 
               <div className="bg-gradient-subtle p-4 rounded-lg border border-border">
-                <h4 className="font-medium mb-2">Demo Video Call Features</h4>
+                <h4 className="font-medium mb-2">Demo Video/Audio Call Features</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• High-quality video and audio</li>
+                  <li>• Audio-only consultation option</li>
                   <li>• Screen sharing for medical reports</li>
                   <li>• Recording for medical records</li>
                   <li>• Secure, HIPAA-compliant platform</li>

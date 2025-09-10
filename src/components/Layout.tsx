@@ -1,8 +1,11 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Activity, Phone, MapPin, Bell, Settings, Heart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import LanguageSelector from '@/components/LanguageSelector';
+import ThemeSelector from '@/components/ThemeSelector';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +13,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
 
   if (!user) return <>{children}</>;
 
@@ -40,14 +44,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <Activity className="h-8 w-8 text-primary transition-transform duration-300 group-hover:scale-110" />
                   <Heart className="h-3 w-3 text-success absolute -top-1 -right-1 animate-pulse" />
                 </div>
-                <h1 className="text-xl font-bold text-foreground">TeleMed Rural</h1>
+                <h1 className="text-xl font-bold text-foreground">{t('teleMedRural')}</h1>
               </div>
               <div className="hidden md:block text-sm text-muted-foreground">
-                Connecting Rural Communities to Healthcare
+                {t('connectingRural')}
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* Language Selector */}
+              <LanguageSelector />
+              
+              {/* Theme Selector */}
+              <ThemeSelector />
+              
               {/* Notification Bell */}
               <Button variant="ghost" size="sm" className="relative">
                 <Bell className="h-4 w-4" />
@@ -93,12 +103,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-sm text-muted-foreground flex items-center space-x-2">
               <Heart className="h-4 w-4 text-success" />
-              <span>© 2025 TeleMed Rural - Bridging Healthcare Gaps</span>
+              <span>© 2025 {t('teleMedRural')} - {t('bridgingHealthcare')}</span>
             </div>
             <div className="flex items-center space-x-6 text-sm text-muted-foreground">
               <div className="flex items-center space-x-1 hover:text-emergency transition-colors cursor-pointer">
                 <Phone className="h-4 w-4" />
-                <span>Emergency: 108</span>
+                <span>{t('emergency')}: 108</span>
               </div>
               <div className="flex items-center space-x-1 hover:text-primary transition-colors">
                 <MapPin className="h-4 w-4" />

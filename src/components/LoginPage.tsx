@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, Heart, Users, Building2, Shield, MapPin, Phone, Stethoscope, Pill, Video, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import LanguageSelector from '@/components/LanguageSelector';
+import ThemeSelector from '@/components/ThemeSelector';
 
 const LoginPage = () => {
   const { login } = useAuth();
+  const { t } = useLanguage();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -28,12 +32,12 @@ const LoginPage = () => {
       const success = await login(email, password);
       if (success) {
         toast({
-          title: "Login Successful",
-          description: "Welcome to TeleMed Rural!",
+          title: t('login') + " Successful",
+          description: "Welcome to " + t('teleMedRural') + "!",
         });
       } else {
         toast({
-          title: "Login Failed", 
+          title: t('login') + " Failed", 
           description: "Invalid credentials. Please use demo credentials.",
           variant: "destructive",
         });
@@ -62,12 +66,14 @@ const LoginPage = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Activity className="h-8 w-8 text-primary" />
-              <h1 className="text-xl font-bold text-foreground">TeleMed Rural</h1>
+              <h1 className="text-xl font-bold text-foreground">{t('teleMedRural')}</h1>
             </div>
-            <div className="flex items-center space-x-6 text-sm text-muted-foreground">
+            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+              <LanguageSelector />
+              <ThemeSelector />
               <div className="flex items-center space-x-1">
                 <Phone className="h-4 w-4" />
-                <span>Emergency: 108</span>
+                <span>{t('emergency')}: 108</span>
               </div>
               <div className="flex items-center space-x-1">
                 <MapPin className="h-4 w-4" />
@@ -84,8 +90,7 @@ const LoginPage = () => {
           <div className="space-y-8 animate-slide-up">
             <div className="space-y-4">
               <h2 className="text-4xl font-bold text-foreground leading-tight">
-                Connecting Rural Communities to 
-                <span className="text-primary"> Quality Healthcare</span>
+                {t('connectingRural')}
               </h2>
               <p className="text-lg text-muted-foreground">
                 Bridge the healthcare gap with our telemedicine platform. Get consultations, 
@@ -96,7 +101,7 @@ const LoginPage = () => {
               <div className="flex flex-wrap gap-4 mt-6">
                 <div className="flex items-center space-x-2 bg-primary/10 px-3 py-2 rounded-full">
                   <Video className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Video Consultations</span>
+                  <span className="text-sm font-medium">{t('videoConsultation')}</span>
                 </div>
                 <div className="flex items-center space-x-2 bg-success/10 px-3 py-2 rounded-full">
                   <Pill className="h-4 w-4 text-success" />
@@ -152,7 +157,7 @@ const LoginPage = () => {
           <div className="space-y-6 animate-slide-up" style={{ animationDelay: '0.3s' }}>
             <Card className="shadow-medical hover:shadow-glow transition-shadow duration-300">
               <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Login to TeleMed</CardTitle>
+                <CardTitle className="text-2xl">{t('login')} to {t('teleMedRural')}</CardTitle>
                 <CardDescription>
                   Choose your role or use demo credentials to explore
                 </CardDescription>
@@ -162,7 +167,7 @@ const LoginPage = () => {
                   <div>
                     <Input
                       type="email"
-                      placeholder="Email address"
+                      placeholder={t('email')}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
@@ -172,7 +177,7 @@ const LoginPage = () => {
                   <div>
                     <Input
                       type="password"
-                      placeholder="Password"
+                      placeholder={t('password')}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
@@ -185,7 +190,7 @@ const LoginPage = () => {
                     className="w-full transition-all duration-300 hover:scale-105" 
                     disabled={loading}
                   >
-                    {loading ? 'Signing in...' : 'Sign In'}
+                    {loading ? t('loading') : t('signIn')}
                   </Button>
                 </form>
 
@@ -194,7 +199,7 @@ const LoginPage = () => {
                     <div className="w-full border-t border-border" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Demo Access</span>
+                    <span className="bg-card px-2 text-muted-foreground">{t('demoAccess')}</span>
                   </div>
                 </div>
 
