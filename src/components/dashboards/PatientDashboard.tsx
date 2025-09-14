@@ -256,7 +256,7 @@ const PatientDashboard = () => {
               <div>
                 <label className="block text-sm font-medium mb-2">Other {t('symptoms')}:</label>
                 <Textarea
-                  placeholder="Describe any other " + t('symptoms') + "..."
+                  placeholder={`Describe any other ${t('symptoms')}...`}
                   value={symptoms.other}
                   onChange={(e) => setSymptoms(prev => ({ ...prev, other: e.target.value }))}
                   className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
