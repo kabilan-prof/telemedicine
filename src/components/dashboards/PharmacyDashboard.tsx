@@ -9,10 +9,14 @@ import { Package, AlertTriangle, TrendingUp, Plus, Edit, Trash2 } from 'lucide-r
 import { useAuth } from '@/contexts/AuthContext';
 import { mockMedicineStock } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
+import OfflineIndicator from '@/components/common/OfflineIndicator';
+import { OfflineService } from '@/services/offlineService';
 
 const PharmacyDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [lowStockAlerts, setLowStockAlerts] = useState<any[]>([]);
+  const [deliveryOrders, setDeliveryOrders] = useState<any[]>([]);
   const [newMedicine, setNewMedicine] = useState({
     name: '',
     stock: '',
@@ -25,6 +29,19 @@ const PharmacyDashboard = () => {
   const lowStockCount = pharmacyStock.filter(med => med.stock < 10).length;
   const outOfStockCount = pharmacyStock.filter(med => med.stock === 0).length;
   const totalMedicines = pharmacyStock.length;
+  const offlineService = OfflineService.getInstance();
+
+  useEffect(() => {
+    // Check for low stock alerts
+    const alerts = pharmacyStock.filter(med => med.stock < 10).map(med => ({
+      id: med.id,
+      medicine: med.name,
+      currentStock: med.stock,
+      reorderLevel: 10,
+      severity: med.stock === 0 ? 'critical' : 'warning'
+    }));
+    setLowStockAlerts(alerts);
+  }, [pharmacyStock]);
 
   const handleAddMedicine = () => {
     if (!newMedicine.name || !newMedicine.stock || !newMedicine.price) {
@@ -57,6 +74,47 @@ const PharmacyDashboard = () => {
     });
   };
 
+  const handleAlternativeSuggestion = async (medicineId: string) => {
+    try {
+      const alternatives = await offlineService.suggestAlternatives(medicineId);
+      if (alternatives.length > 0) {
+        toast({
+          title: "Alternatives Available",
+          description: `Found ${alternatives.length} alternative medicines.`,
+        });
+      } else {
+        toast({
+          title: "No Alternatives",
+          description: "No alternative medicines found for this item.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Unable to fetch alternatives at the moment.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeliveryOrder = (prescriptionId: string) => {
+    const newOrder = {
+      id: Date.now().toString(),
+      prescriptionId,
+      status: 'pending',
+      estimatedDelivery: new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString(),
+      paymentMethod: 'cod'
+    };
+    
+    setDeliveryOrders(prev => [...prev, newOrder]);
+    
+    toast({
+      title: "Delivery Order Created",
+      description: "Order has been created and will be delivered within 24 hours.",
+    });
+  };
+
   const getStockStatus = (stock: number) => {
     if (stock === 0) return { label: 'Out of Stock', variant: 'destructive' as const };
     if (stock < 10) return { label: 'Low Stock', variant: 'secondary' as const };
@@ -65,6 +123,8 @@ const PharmacyDashboard = () => {
 
   return (
     <div className="space-y-6">
+      <OfflineIndicator />
+      
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-foreground">Pharmacy Dashboard</h1>
         <Badge variant="secondary" className="text-warning">
@@ -73,10 +133,11 @@ const PharmacyDashboard = () => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="add-medicine">Add Medicine</TabsTrigger>
+          <TabsTrigger value="delivery">Delivery</TabsTrigger>
           <TabsTrigger value="requests">Requests</TabsTrigger>
         </TabsList>
 
@@ -145,8 +206,51 @@ const PharmacyDashboard = () => {
                 <AlertTriangle className="h-6 w-6" />
                 <span>Low Stock Alert</span>
               </Button>
+              <Button variant="success" className="h-20 flex-col space-y-2">
+                <TrendingUp className="h-6 w-6" />
+                <span>Delivery Orders</span>
+              </Button>
             </CardContent>
           </Card>
+          
+          {/* Low Stock Alerts */}
+          {lowStockAlerts.length > 0 && (
+            <Card className="shadow-card border-warning">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-warning">
+                  <AlertTriangle className="h-5 w-5" />
+                  <span>Stock Alerts</span>
+                </CardTitle>
+                <CardDescription>Medicines requiring immediate attention</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {lowStockAlerts.map((alert) => (
+                    <div key={alert.id} className="flex items-center justify-between p-3 bg-warning/10 rounded-lg">
+                      <div>
+                        <span className="font-medium">{alert.medicine}</span>
+                        <span className="text-sm text-muted-foreground ml-2">
+                          Stock: {alert.currentStock}
+                        </span>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Badge variant={alert.severity === 'critical' ? 'destructive' : 'secondary'}>
+                          {alert.severity}
+                        </Badge>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleAlternativeSuggestion(alert.id)}
+                        >
+                          Suggest Alternatives
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="inventory" className="space-y-4">
@@ -183,6 +287,13 @@ const PharmacyDashboard = () => {
                           <div className="flex space-x-2">
                             <Button size="sm" variant="outline">
                               <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="secondary"
+                              onClick={() => handleAlternativeSuggestion(medicine.id)}
+                            >
+                              Alternatives
                             </Button>
                             <Button size="sm" variant="destructive">
                               <Trash2 className="h-3 w-3" />
@@ -262,6 +373,73 @@ const PharmacyDashboard = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="delivery" className="space-y-4">
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle>Delivery Management</CardTitle>
+              <CardDescription>Manage medicine deliveries and cash-on-delivery orders</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="border border-border rounded-lg p-4">
+                  <h4 className="font-medium mb-2">Delivery Options</h4>
+                  <div className="space-y-2">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Package className="h-4 w-4 mr-2" />
+                      Same Day Delivery
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start">
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Express Delivery (2 hours)
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      Emergency Delivery
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="border border-border rounded-lg p-4">
+                  <h4 className="font-medium mb-2">Payment Options</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <input type="radio" name="payment" id="online" />
+                      <label htmlFor="online">Online Payment</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input type="radio" name="payment" id="cod" defaultChecked />
+                      <label htmlFor="cod">Cash on Delivery</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input type="radio" name="payment" id="credit" />
+                      <label htmlFor="credit">Credit (for regular customers)</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {deliveryOrders.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Active Delivery Orders</h4>
+                  <div className="space-y-2">
+                    {deliveryOrders.map((order) => (
+                      <div key={order.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                        <div>
+                          <span className="font-medium">Order #{order.id}</span>
+                          <span className="text-sm text-muted-foreground ml-2">
+                            Delivery: {order.estimatedDelivery}
+                          </span>
+                        </div>
+                        <Badge variant="outline">{order.status}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="requests" className="space-y-4">
           <Card className="shadow-card">
             <CardHeader>
@@ -284,6 +462,13 @@ const PharmacyDashboard = () => {
                   <Button size="sm" variant="outline">
                     Contact Patient
                   </Button>
+                  <Button 
+                    size="sm" 
+                    variant="success"
+                    onClick={() => handleDeliveryOrder('presc1')}
+                  >
+                    Arrange Delivery
+                  </Button>
                 </div>
               </div>
 
@@ -301,6 +486,13 @@ const PharmacyDashboard = () => {
                   </Button>
                   <Button size="sm" variant="outline">
                     Suggest Alternative
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="warning"
+                    onClick={() => handleAlternativeSuggestion('stock3')}
+                  >
+                    Find Alternatives
                   </Button>
                 </div>
               </div>

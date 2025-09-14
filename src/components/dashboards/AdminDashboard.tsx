@@ -9,15 +9,75 @@ import { Users, Activity, Building2, TrendingUp, Download, UserCheck, AlertCircl
 import { useAuth } from '@/contexts/AuthContext';
 import { demoUsers, mockAnalytics } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
+import OfflineIndicator from '@/components/common/OfflineIndicator';
+import { OfflineService } from '@/services/offlineService';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [systemAlerts, setSystemAlerts] = useState<any[]>([]);
+  const [govSchemes, setGovSchemes] = useState<any[]>([]);
+  const offlineService = OfflineService.getInstance();
+
+  useEffect(() => {
+    // Initialize system alerts
+    setSystemAlerts([
+      {
+        id: '1',
+        type: 'shortage',
+        message: 'Medicine shortage reported in 3 pharmacies',
+        severity: 'high',
+        timestamp: new Date()
+      },
+      {
+        id: '2',
+        type: 'doctor_unavailable',
+        message: 'Dr. Smith marked unavailable - 5 patients auto-redirected',
+        severity: 'medium',
+        timestamp: new Date()
+      }
+    ]);
+
+    // Initialize government schemes
+    setGovSchemes([
+      {
+        id: '1',
+        name: 'Ayushman Bharat',
+        coverage: '₹5,00,000 per family',
+        eligibility: 'BPL families',
+        status: 'active'
+      },
+      {
+        id: '2',
+        name: 'Pradhan Mantri Jan Aushadhi',
+        coverage: 'Generic medicines at 50-90% discount',
+        eligibility: 'All citizens',
+        status: 'active'
+      }
+    ]);
+  }, []);
 
   const exportCSV = () => {
     toast({
       title: "Export Started",
       description: "Downloading system analytics as CSV file...",
+    });
+  };
+
+  const handleEscalation = (alertId: string, action: string) => {
+    toast({
+      title: "Escalation Triggered",
+      description: `${action} has been initiated for alert ${alertId}.`,
+    });
+    
+    // Remove handled alert
+    setSystemAlerts(prev => prev.filter(alert => alert.id !== alertId));
+  };
+
+  const handleCommunityAlert = () => {
+    toast({
+      title: "Community Alert Sent",
+      description: "Health alert has been sent to all registered users in the community.",
     });
   };
 
@@ -31,6 +91,8 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      <OfflineIndicator />
+      
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
         <Badge variant="secondary" className="text-emergency">
@@ -39,10 +101,11 @@ const AdminDashboard = () => {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="escalations">Escalations</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
 
@@ -163,6 +226,45 @@ const AdminDashboard = () => {
               </div>
             </CardContent>
           </Card>
+          
+          {/* System Alerts */}
+          {systemAlerts.length > 0 && (
+            <Card className="shadow-card border-warning">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2 text-warning">
+                  <AlertCircle className="h-5 w-5" />
+                  <span>System Alerts</span>
+                </CardTitle>
+                <CardDescription>Critical issues requiring immediate attention</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {systemAlerts.map((alert) => (
+                    <div key={alert.id} className="flex items-center justify-between p-3 bg-warning/10 rounded-lg">
+                      <div>
+                        <span className="font-medium">{alert.message}</span>
+                        <span className="text-sm text-muted-foreground block">
+                          {alert.timestamp.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Badge variant={alert.severity === 'high' ? 'destructive' : 'secondary'}>
+                          {alert.severity}
+                        </Badge>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleEscalation(alert.id, 'Auto-resolve')}
+                        >
+                          Resolve
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="users" className="space-y-4">
@@ -289,6 +391,86 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="escalations" className="space-y-4">
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle>Escalation Management</CardTitle>
+              <CardDescription>Handle critical issues and system escalations</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="border border-border rounded-lg p-4">
+                  <h4 className="font-medium mb-3">Quick Actions</h4>
+                  <div className="space-y-2">
+                    <Button variant="emergency" className="w-full justify-start">
+                      <AlertCircle className="h-4 w-4 mr-2" />
+                      Send Community Health Alert
+                    </Button>
+                    <Button variant="warning" className="w-full justify-start">
+                      <Users className="h-4 w-4 mr-2" />
+                      Reassign Patients (Bulk)
+                    </Button>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Building2 className="h-4 w-4 mr-2" />
+                      Issue Pharmacy Notice
+                    </Button>
+                    <Button 
+                      variant="success" 
+                      className="w-full justify-start"
+                      onClick={handleCommunityAlert}
+                    >
+                      <Activity className="h-4 w-4 mr-2" />
+                      Broadcast Health Update
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="border border-border rounded-lg p-4">
+                  <h4 className="font-medium mb-3">Government Schemes</h4>
+                  <div className="space-y-3">
+                    {govSchemes.map((scheme) => (
+                      <div key={scheme.id} className="p-3 bg-muted/50 rounded-lg">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium">{scheme.name}</span>
+                          <Badge variant="default">{scheme.status}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{scheme.coverage}</p>
+                        <p className="text-xs text-muted-foreground">Eligibility: {scheme.eligibility}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <Card className="bg-gradient-subtle">
+                <CardHeader>
+                  <CardTitle className="text-lg">Offline-First Sync Status</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-success">
+                        {offlineService.isConnected() ? 'Online' : 'Offline'}
+                      </div>
+                      <div className="text-sm text-muted-foreground">System Status</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">0</div>
+                      <div className="text-sm text-muted-foreground">Pending Sync</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-warning">
+                        {offlineService.getNetworkQuality()}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Network Quality</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="reports" className="space-y-4">
           <Card className="shadow-card">
             <CardHeader>
@@ -308,6 +490,10 @@ const AdminDashboard = () => {
                 <Button onClick={exportCSV} variant="success" className="h-20 flex-col space-y-2">
                   <Activity className="h-6 w-6" />
                   <span>Consultation Report</span>
+                </Button>
+                <Button onClick={exportCSV} variant="outline" className="h-20 flex-col space-y-2">
+                  <AlertCircle className="h-6 w-6" />
+                  <span>Escalation Report</span>
                 </Button>
               </div>
             </CardContent>

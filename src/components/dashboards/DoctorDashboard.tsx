@@ -10,11 +10,17 @@ import { Calendar, Clock, User, FileText, Video, CheckCircle, XCircle, Users, St
 import { useAuth } from '@/contexts/AuthContext';
 import { mockAppointments } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
+import AISymptomChecker from '@/components/common/AISymptomChecker';
+import AIChatbot from '@/components/common/AIChatbot';
+import OfflineIndicator from '@/components/common/OfflineIndicator';
+import { OfflineService } from '@/services/offlineService';
 
 const DoctorDashboard = () => {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { toast } = useToast();
+  const [showChatbot, setShowChatbot] = useState(false);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const [prescriptionForm, setPrescriptionForm] = useState({
     patientId: '',
     medicines: '',
@@ -24,8 +30,17 @@ const DoctorDashboard = () => {
   const doctorAppointments = mockAppointments.filter(apt => apt.doctorId === user?.id);
   const pendingCount = doctorAppointments.filter(apt => apt.status === 'pending').length;
   const approvedCount = doctorAppointments.filter(apt => apt.status === 'approved').length;
+  const offlineService = OfflineService.getInstance();
 
   const handleApproveAppointment = (appointmentId: string) => {
+    if (!offlineService.isConnected()) {
+      offlineService.queueAction({
+        type: 'approve_appointment',
+        appointmentId,
+        doctorId: user?.id
+      });
+    }
+    
     toast({
       title: "Appointment Approved",
       description: "Patient has been notified about the approved appointment.",
@@ -65,8 +80,34 @@ const DoctorDashboard = () => {
     });
   };
 
+  const handleAutoRedirect = async (appointmentId: string) => {
+    try {
+      const alternativeDoctor = await offlineService.handleDoctorUnavailable(user?.id || '', appointmentId);
+      if (alternativeDoctor) {
+        toast({
+          title: "Patient Redirected",
+          description: `Patient has been redirected to an available doctor.`,
+        });
+      } else {
+        toast({
+          title: "No Alternative Found",
+          description: "No alternative doctors available. Patient will be notified.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Redirect Failed",
+        description: "Unable to redirect patient. Please handle manually.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <OfflineIndicator />
+      
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">{t('doctorDashboard')}</h1>
@@ -81,6 +122,15 @@ const DoctorDashboard = () => {
             <Award className="h-3 w-3 mr-1" />
             Verified
           </Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowChatbot(true)}
+            className="flex items-center space-x-1"
+          >
+            <MessageSquare className="h-3 w-3" />
+            <span>AI Assistant</span>
+          </Button>
         </div>
       </div>
 
@@ -203,6 +253,14 @@ const DoctorDashboard = () => {
                 <Video className="h-6 w-6" />
                 <span>{t('startVideoCall')}</span>
               </Button>
+              <Button 
+                variant="outline" 
+                className="h-20 flex-col space-y-2 hover:scale-105 transition-transform"
+                onClick={() => setShowAIAssistant(true)}
+              >
+                <Brain className="h-6 w-6" />
+                <span>AI Assistant</span>
+              </Button>
               <Button variant="secondary" className="h-20 flex-col space-y-2 hover:scale-105 transition-transform">
                 <Phone className="h-6 w-6" />
                 <span>{t('startAudioCall')}</span>
@@ -300,6 +358,13 @@ const DoctorDashboard = () => {
                       >
                         <XCircle className="h-4 w-4 mr-1" />
                         Reject
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleAutoRedirect(appointment.id)}
+                      >
+                        Auto-Redirect
                       </Button>
                     </div>
                   )}
@@ -421,6 +486,30 @@ const DoctorDashboard = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* AI Symptom Assistant for Doctors */}
+      {showAIAssistant && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">AI Diagnostic Assistant</h3>
+              <Button variant="ghost" onClick={() => setShowAIAssistant(false)}>×</Button>
+            </div>
+            <AISymptomChecker 
+              onRecommendation={(recommendation) => {
+                console.log('AI Recommendation for Doctor:', recommendation);
+              }}
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* AI Chatbot */}
+      <AIChatbot 
+        isOpen={showChatbot}
+        onClose={() => setShowChatbot(false)}
+        context={{ userId: user?.id, userType: 'doctor' }}
+      />
     </div>
   );
 };
