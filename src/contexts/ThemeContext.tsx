@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Appearance } from 'react-native';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -11,41 +13,46 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    return (localStorage.getItem('theme') as Theme) || 'system';
-  });
-
+  const [theme, setThemeState] = useState<Theme>('system');
   const [actualTheme, setActualTheme] = useState<'light' | 'dark'>('light');
 
-  const setTheme = (newTheme: Theme) => {
+  const setTheme = async (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem('theme', newTheme);
+    await AsyncStorage.setItem('theme', newTheme);
   };
 
   useEffect(() => {
-    const root = window.document.documentElement;
-    
+    const loadTheme = async () => {
+      try {
+        const savedTheme = await AsyncStorage.getItem('theme');
+        if (savedTheme) {
+          setThemeState(savedTheme as Theme);
+        }
+      } catch (error) {
+        console.error('Error loading theme:', error);
+      }
+    };
+    loadTheme();
+  }, []);
+
+  useEffect(() => {
     const updateTheme = () => {
       let effectiveTheme: 'light' | 'dark' = 'light';
       
       if (theme === 'system') {
-        effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        effectiveTheme = Appearance.getColorScheme() === 'dark' ? 'dark' : 'light';
       } else {
         effectiveTheme = theme as 'light' | 'dark';
       }
       
       setActualTheme(effectiveTheme);
-      
-      root.classList.remove('light', 'dark');
-      root.classList.add(effectiveTheme);
     };
 
     updateTheme();
 
     if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      mediaQuery.addEventListener('change', updateTheme);
-      return () => mediaQuery.removeEventListener('change', updateTheme);
+      const subscription = Appearance.addChangeListener(updateTheme);
+      return () => subscription?.remove();
     }
   }, [theme]);
 

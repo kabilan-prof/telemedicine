@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, AuthContext as IAuthContext } from '@/types/auth';
 import { demoUsers } from '@/data/mockData';
 
@@ -29,23 +30,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     if (foundUser) {
       setUser(foundUser);
-      localStorage.setItem('user', JSON.stringify(foundUser));
+      await AsyncStorage.setItem('user', JSON.stringify(foundUser));
       return true;
     }
     return false;
   };
 
-  const logout = () => {
+  const logout = async () => {
     setUser(null);
-    localStorage.removeItem('user');
+    await AsyncStorage.removeItem('user');
   };
 
   // Check for stored user on init
-  React.useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('user');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error('Error loading user:', error);
+      }
+    };
+    loadUser();
   }, []);
 
   return (
